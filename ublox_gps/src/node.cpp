@@ -50,12 +50,22 @@ std::string frame_id;
 sensor_msgs::NavSatFix fix;
 geometry_msgs::Vector3Stamped velocity;
 
+
+
 void publishNavStatus(const ublox_msgs::NavSTATUS& m)
 {
   static ros::Publisher publisher = nh->advertise<ublox_msgs::NavSTATUS>("ublox/navstatus", 10);
   publisher.publish(m);
 
   status = m;
+}
+
+void publishNav5(const ublox_msgs::CfgNAV5& m)
+{
+  //static ros::Publisher publisher = nh->advertise<ublox_msgs::CfgNAV5>("ublox/nav5", 1);
+  ROS_INFO("HERE!!!!!!");
+  //publisher.publish(m);
+  // status = m;
 }
 
 void publishNavSOL(const ublox_msgs::NavSOL& m)
@@ -242,11 +252,26 @@ int main(int argc, char **argv) {
   }
 
   // configure the GPS
+int dynamic_mode;
+int minimum_elevation;
   ROS_INFO("Configuring GPS receiver...");
-  if (!gps.configure()) {
+  param.param("dynamic_mode", dynamic_mode, 0);
+  param.param("minimum_elevation", minimum_elevation, 5);
+  ublox_msgs::CfgNAV5 msg;
+  msg.dynModel = dynamic_mode;
+  msg.minElev = minimum_elevation;
+  if(gps.configure(msg, true)){
+    ROS_INFO("DYNAMIC MODE: %i",dynamic_mode);
+    ROS_INFO("MINIMUM ELEVATION: %i",minimum_elevation);
+  }
+ 
+
+  // }else{
+    if (!gps.configure()) {
     ROS_ERROR("Could not configure u-blox GPS");
     goto cleanup;
-  }
+    }
+  // }
 
   ROS_INFO("Done!");
 
@@ -277,6 +302,10 @@ int main(int argc, char **argv) {
   if (enabled["aid_eph"]) gps.subscribe<ublox_msgs::AidEPH>(&publishAidEPH);
   param.param("aid_hui", enabled["aid_hui"], enabled["all"] || enabled["aid"]);
   if (enabled["aid_hui"]) gps.subscribe<ublox_msgs::AidHUI>(&publishAidHUI);
+
+  param.param("cfg_nav5", enabled["cfg_nav5"], enabled["all"] );
+  if (enabled["cfg_nav5"]) gps.subscribe<ublox_msgs::CfgNAV5>(&publishNav5, 1);
+
 
   poller = nh->createTimer(ros::Duration(1.0), &pollMessages);
   poller.start();

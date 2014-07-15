@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/danpierce/devel/ublox_test_ws/src/ublox/ublox_msgs/build/devel/setup.sh
